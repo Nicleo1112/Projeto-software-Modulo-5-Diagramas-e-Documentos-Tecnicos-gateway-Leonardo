@@ -1,23 +1,73 @@
 # DoculA Gateway API
 
-Microsservico orquestrador do Modulo 5. Integra a Parser API e a Diagram API para gerar diagramas de classes a partir de codigo-fonte.
+Microsserviço orquestrador do **Módulo 5 — Diagramas e Documentos Técnicos** da plataforma DoculA.
+
+O Gateway API é responsável por integrar a **Parser API** e a **Diagram API**, coordenando o fluxo completo de geração de diagramas UML a partir de código-fonte enviado pelo frontend.
+
+## Arquitetura
+
+```txt
+Frontend
+   ↓
+Gateway API
+   ↓
+Parser API
+   ↓
+Diagram API
+````
+
+## Responsabilidades do Gateway
+
+* Receber requisições do frontend;
+* Encaminhar código-fonte para a Parser API;
+* Receber classes, atributos e métodos extraídos;
+* Enviar os dados estruturados para a Diagram API;
+* Retornar o PlantUML gerado ao frontend;
+* Centralizar a integração entre os microsserviços do módulo;
+* Disponibilizar um ponto único de comunicação para outros módulos da plataforma.
+
+## Deploy em Produção
+
+### Gateway API
+
+```txt
+https://docula-gateway-api-dzgfg8ghghadeedd.eastus-01.azurewebsites.net/
+```
+
+### Swagger/OpenAPI do Gateway
+
+```txt
+https://docula-gateway-api-dzgfg8ghghadeedd.eastus-01.azurewebsites.net/docs
+```
+
+### Parser API
+
+```txt
+https://diagramas-parser-e6dzc7f5ateae3ce.canadacentral-01.azurewebsites.net
+```
+
+### Diagram API
+
+```txt
+https://diagramas-diagram-eugce0h0bygfdqhf.canadacentral-01.azurewebsites.net
+```
 
 ## Requisitos
 
-- Python 3.10+
-- Parser API rodando na porta `8001`
-- Diagram API rodando na porta `8002`
-- Opcional: PostgreSQL configurado em `DATABASE_URL` para salvar historico
+* Python 3.10+
+* Parser API disponível
+* Diagram API disponível
+* Opcional: PostgreSQL configurado em `DATABASE_URL`
 
-## Instalacao
+## Instalação
 
 ```powershell
 pip install -r requirements.txt
 ```
 
-## Como rodar
+## Como executar localmente
 
-Em tres terminais diferentes, rode os microsservicos:
+Execute os microsserviços em terminais separados.
 
 ### Parser API
 
@@ -37,25 +87,50 @@ python -m uvicorn app.main:app --reload --port 8002
 python -m uvicorn app.main:app --reload --port 8000
 ```
 
-Depois abra:
+Swagger/OpenAPI local:
 
 ```txt
 http://127.0.0.1:8000/docs
 ```
 
-## Variaveis de ambiente
+## Variáveis de ambiente
+
+Em ambiente local ou produção, configure:
 
 ```txt
-PARSER_API_URL=https://url-da-parser-api
-DIAGRAM_API_URL=https://url-da-diagram-api
+PARSER_API_URL=https://diagramas-parser-e6dzc7f5ateae3ce.canadacentral-01.azurewebsites.net
+
+DIAGRAM_API_URL=https://diagramas-diagram-eugce0h0bygfdqhf.canadacentral-01.azurewebsites.net
+
 DATABASE_URL=postgresql://usuario:senha@servidor.postgres.database.azure.com:5432/nome_do_banco
 ```
 
-Se `DATABASE_URL` estiver configurada, a API cria a tabela de historico ao iniciar e salva cada geracao de diagrama.
+Observação: `DATABASE_URL` é opcional na versão atual. Caso configurada, pode ser usada para persistir o histórico de diagramas gerados.
 
-## Teste
+## Endpoints
 
-Use o endpoint `POST /diagram/class` com este corpo:
+### Health check
+
+```http
+GET /health
+```
+
+Exemplo de resposta:
+
+```json
+{
+  "status": "ok",
+  "service": "docula-gateway-api"
+}
+```
+
+### Gerar diagrama UML de classes
+
+```http
+POST /diagram/class
+```
+
+Exemplo de entrada:
 
 ```json
 {
@@ -64,10 +139,109 @@ Use o endpoint `POST /diagram/class` com este corpo:
 }
 ```
 
-A resposta esperada contem as classes extraidas e o PlantUML gerado.
+Exemplo de resposta:
 
-Para consultar o historico salvo no banco:
+```json
+{
+  "title": "Diagrama Usuario",
+  "classes": [
+    {
+      "name": "Usuario",
+      "attributes": ["nome", "email"],
+      "methods": ["login", "logout"]
+    }
+  ],
+  "plantuml": "@startuml\nclass Usuario {\n  nome\n  email\n  login()\n  logout()\n}\n@enduml"
+}
+```
+
+### Histórico de diagramas
+
+Caso o banco de dados esteja configurado, o Gateway pode salvar e consultar o histórico de diagramas gerados.
+
+```http
+GET /diagram/history
+```
+
+## Fluxo de funcionamento
 
 ```txt
-GET /diagram/history
+1. O usuário envia código-fonte pelo frontend.
+2. O frontend chama o Gateway API.
+3. O Gateway envia o código para a Parser API.
+4. A Parser API extrai classes, atributos e métodos.
+5. O Gateway envia os dados estruturados para a Diagram API.
+6. A Diagram API gera o PlantUML.
+7. O Gateway retorna o resultado para o frontend.
+```
+
+## Papel na integração com outros módulos
+
+O Gateway API atua como ponto central de integração do Módulo 5.
+
+Outros módulos da plataforma podem consumir este serviço para gerar e recuperar diagramas automaticamente, incluindo:
+
+* Módulo de Relatórios;
+* Módulo de Apresentações;
+* Módulo de Consulta;
+* Plataforma HUB;
+* Módulo de Ingestão de Dados.
+
+Exemplo de uso por outros módulos:
+
+```txt
+Relatórios → Gateway API → Diagrama UML → PDF/DOCX
+Apresentações → Gateway API → Diagrama UML → Slides
+Consulta → Gateway API → Estrutura do código → Respostas sobre arquitetura
+HUB → Gateway API → Diagramas do projeto
+```
+
+## Tecnologias utilizadas
+
+* Python
+* FastAPI
+* Uvicorn
+* HTTPX
+* Pydantic
+* PostgreSQL
+* SQLAlchemy
+* Azure App Service
+
+## Deploy
+
+O serviço está preparado para deploy em **Azure App Service**.
+
+Startup command utilizado:
+
+```bash
+python -m uvicorn app.main:app --host 0.0.0.0 --port 8000
+```
+
+## Versionamento
+
+O projeto utiliza versionamento semântico.
+
+Versão atual:
+
+```txt
+v0.1.1
+```
+
+Histórico inicial:
+
+```txt
+v0.1.0 - Integração inicial entre Parser API e Diagram API
+v0.1.1 - Preparação para deploy Azure
+```
+
+## Observação
+
+Este microsserviço não é responsável por fazer o parsing do código nem gerar diretamente o PlantUML.
+
+Essas responsabilidades são separadas em outros microsserviços:
+
+```txt
+Parser API → análise do código-fonte
+Diagram API → geração do PlantUML
+Gateway API → orquestração do fluxo
 ```
