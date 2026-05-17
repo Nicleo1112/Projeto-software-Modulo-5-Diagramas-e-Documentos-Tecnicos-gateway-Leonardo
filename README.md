@@ -7,6 +7,7 @@ Microsservico orquestrador do Modulo 5. Integra a Parser API e a Diagram API par
 - Python 3.10+
 - Parser API rodando na porta `8001`
 - Diagram API rodando na porta `8002`
+- Opcional: PostgreSQL configurado em `DATABASE_URL` para salvar historico
 
 ## Instalacao
 
@@ -42,6 +43,16 @@ Depois abra:
 http://127.0.0.1:8000/docs
 ```
 
+## Variaveis de ambiente
+
+```txt
+PARSER_API_URL=https://url-da-parser-api
+DIAGRAM_API_URL=https://url-da-diagram-api
+DATABASE_URL=postgresql://usuario:senha@servidor.postgres.database.azure.com:5432/nome_do_banco
+```
+
+Se `DATABASE_URL` estiver configurada, a API cria a tabela de historico ao iniciar e salva cada geracao de diagrama.
+
 ## Teste
 
 Use o endpoint `POST /diagram/class` com este corpo:
@@ -54,3 +65,9 @@ Use o endpoint `POST /diagram/class` com este corpo:
 ```
 
 A resposta esperada contem as classes extraidas e o PlantUML gerado.
+
+Para consultar o historico salvo no banco:
+
+```txt
+GET /diagram/history
+```
