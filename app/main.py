@@ -19,6 +19,15 @@ app.add_middleware(
 )
 
 
+@app.get("/")
+def root():
+    return {
+        "message": "DoculA Gateway API online",
+        "docs": "Acesse http://127.0.0.1:8000/docs para testar os endpoints",
+        "health": "Acesse http://127.0.0.1:8000/health para verificar o status"
+    }
+
+
 @app.get("/health")
 def health():
     return {
