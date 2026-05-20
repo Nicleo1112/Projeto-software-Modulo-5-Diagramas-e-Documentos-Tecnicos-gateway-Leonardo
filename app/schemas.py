@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import List
+from typing import List, Optional
 
 from pydantic import BaseModel, ConfigDict
 
@@ -7,6 +7,9 @@ from pydantic import BaseModel, ConfigDict
 class DiagramRequest(BaseModel):
     title: str
     source_code: str
+    diagram_type: Optional[str] = "uml-class"
+    project_id: Optional[str] = None
+    project_name: Optional[str] = None
 
 
 class ParsedClass(BaseModel):
@@ -17,6 +20,9 @@ class ParsedClass(BaseModel):
 
 class DiagramResponse(BaseModel):
     title: str
+    diagram_type: str
+    project_id: Optional[str] = None
+    project_name: Optional[str] = None
     classes: List[ParsedClass]
     plantuml: str
 
@@ -29,4 +35,7 @@ class DiagramHistoryItem(BaseModel):
     source_code: str
     classes: List[ParsedClass]
     plantuml: str
+    diagram_type: Optional[str] = None
+    project_id: Optional[str] = None
+    project_name: Optional[str] = None
     created_at: datetime
