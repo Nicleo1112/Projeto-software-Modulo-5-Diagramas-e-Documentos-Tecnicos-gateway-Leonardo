@@ -1,3 +1,4 @@
+import logging
 from typing import List
 
 from fastapi import Depends, FastAPI, HTTPException
@@ -19,6 +20,8 @@ from app.schemas import (
 )
 from app.services.api_docs_flow import generate_api_documentation
 from app.services.diagram_flow import generate_class_diagram
+
+logger = logging.getLogger(__name__)
 
 app = FastAPI(
     title="DoculA Gateway API",
@@ -83,16 +86,20 @@ async def create_class_diagram(
     result = await generate_class_diagram(request.source_code)
 
     if db is not None:
-        await save_diagram_history(
-            db,
-            title=request.title,
-            source_code=request.source_code,
-            classes=result["classes"],
-            plantuml=result["plantuml"],
-            diagram_type=request.diagram_type,
-            project_id=request.project_id,
-            project_name=request.project_name,
-        )
+        try:
+            await save_diagram_history(
+                db,
+                title=request.title,
+                source_code=request.source_code,
+                classes=result["classes"],
+                plantuml=result["plantuml"],
+                diagram_type=request.diagram_type,
+                project_id=request.project_id,
+                project_name=request.project_name,
+            )
+        except Exception as exc:
+            await db.rollback()
+            logger.warning("Falha ao salvar historico do diagrama: %s", exc)
 
     return {
         "title": request.title,
