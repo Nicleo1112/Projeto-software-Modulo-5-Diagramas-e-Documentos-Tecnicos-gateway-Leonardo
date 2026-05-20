@@ -10,7 +10,14 @@ from app.repositories import (
     list_diagrams_by_project,
     save_diagram_history,
 )
-from app.schemas import DiagramHistoryItem, DiagramRequest, DiagramResponse
+from app.schemas import (
+    ApiDocsRequest,
+    ApiDocsResponse,
+    DiagramHistoryItem,
+    DiagramRequest,
+    DiagramResponse,
+)
+from app.services.api_docs_flow import generate_api_documentation
 from app.services.diagram_flow import generate_class_diagram
 
 app = FastAPI(
@@ -53,6 +60,18 @@ def health():
         "database": {
             "configured": is_database_configured()
         },
+    }
+
+
+@app.post("/api-docs/generate", response_model=ApiDocsResponse)
+async def create_api_documentation(request: ApiDocsRequest):
+    result = await generate_api_documentation(request.source_code)
+
+    return {
+        "title": request.title,
+        "project_id": request.project_id,
+        "project_name": request.project_name,
+        "endpoints": result["endpoints"],
     }
 
 

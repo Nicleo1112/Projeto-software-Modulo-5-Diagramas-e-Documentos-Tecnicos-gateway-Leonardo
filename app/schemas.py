@@ -39,3 +39,24 @@ class DiagramHistoryItem(BaseModel):
     project_id: Optional[str] = None
     project_name: Optional[str] = None
     created_at: datetime
+
+
+class ApiDocsRequest(BaseModel):
+    title: str
+    source_code: str
+    project_id: Optional[str] = None
+    project_name: Optional[str] = None
+
+
+class ApiEndpoint(BaseModel):
+    method: str
+    path: str
+    framework: str
+    description: str
+
+
+class ApiDocsResponse(BaseModel):
+    title: str
+    project_id: Optional[str] = None
+    project_name: Optional[str] = None
+    endpoints: List[ApiEndpoint]
