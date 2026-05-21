@@ -60,3 +60,28 @@ class ApiDocsResponse(BaseModel):
     project_id: Optional[str] = None
     project_name: Optional[str] = None
     endpoints: List[ApiEndpoint]
+
+
+class SourceFile(BaseModel):
+    path: str
+    content: str
+
+
+class AiAnalyzeRequest(BaseModel):
+    project_id: Optional[str] = None
+    project_name: Optional[str] = None
+    source_code: Optional[str] = None
+    repository_url: Optional[str] = None
+    branch: Optional[str] = None
+    files: Optional[List[SourceFile]] = None
+
+
+class AiAnalyzeResponse(BaseModel):
+    project_id: Optional[str] = None
+    project_name: Optional[str] = None
+    summary: str
+    suggested_diagram_type: str
+    detected_profiles: List[str]
+    architecture_notes: List[str]
+    possible_entities: List[str]
+    possible_relationships: List[str]

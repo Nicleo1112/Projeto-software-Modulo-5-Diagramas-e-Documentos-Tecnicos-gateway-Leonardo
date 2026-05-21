@@ -12,6 +12,8 @@ from app.repositories import (
     save_diagram_history,
 )
 from app.schemas import (
+    AiAnalyzeRequest,
+    AiAnalyzeResponse,
     ApiDocsRequest,
     ApiDocsResponse,
     DiagramHistoryItem,
@@ -19,6 +21,7 @@ from app.schemas import (
     DiagramResponse,
 )
 from app.services.api_docs_flow import generate_api_documentation
+from app.services.ai_analyzer import analyze_code
 from app.services.diagram_flow import generate_class_diagram
 
 logger = logging.getLogger(__name__)
@@ -26,7 +29,7 @@ logger = logging.getLogger(__name__)
 app = FastAPI(
     title="DoculA Gateway API",
     description="Microsservico orquestrador do Modulo 5. Integra Parser API e Diagram API.",
-    version="0.3.0",
+    version="0.4.0",
 )
 
 app.add_middleware(
@@ -49,6 +52,7 @@ def root():
         "message": "DoculA Gateway API online",
         "docs": "/docs",
         "health": "/health",
+        "ai_analysis": "/ai/analyze",
         "history": "/diagram/history",
         "projects_history": "/projects/{project_id}/diagrams",
     }
@@ -59,10 +63,24 @@ def health():
     return {
         "status": "ok",
         "service": "docula-gateway-api",
-        "version": "0.3.0",
+        "version": "0.4.0",
         "database": {
             "configured": is_database_configured()
         },
+    }
+
+
+@app.post("/ai/analyze", response_model=AiAnalyzeResponse)
+async def analyze_source_code(request: AiAnalyzeRequest):
+    result = analyze_code(
+        source_code=request.source_code,
+        files=request.files,
+    )
+
+    return {
+        "project_id": request.project_id,
+        "project_name": request.project_name,
+        **result,
     }
 
 
