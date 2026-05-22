@@ -5,6 +5,7 @@ from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.auth import get_current_user
 from app.database import get_db, init_db, is_database_configured
 from app.repositories import (
     list_diagram_history,
@@ -32,7 +33,7 @@ logger = logging.getLogger(__name__)
 app = FastAPI(
     title="DoculA Gateway API",
     description="Microsservico orquestrador do Modulo 5. Integra Parser API e Diagram API.",
-    version="0.5.0",
+    version="0.6.0",
 )
 
 app.add_middleware(
@@ -55,6 +56,7 @@ def root():
         "message": "DoculA Gateway API online",
         "docs": "/docs",
         "health": "/health",
+        "auth": "/auth/me",
         "ai_analysis": "/ai/analyze",
         "history": "/diagram/history",
         "projects_history": "/projects/{project_id}/diagrams",
@@ -66,15 +68,25 @@ def health():
     return {
         "status": "ok",
         "service": "docula-gateway-api",
-        "version": "0.5.0",
+        "version": "0.6.0",
         "database": {
             "configured": is_database_configured()
         },
     }
 
 
+@app.get("/auth/me")
+async def auth_me(
+    current_user: dict = Depends(get_current_user),
+):
+    return current_user
+
+
 @app.post("/ai/analyze", response_model=AiAnalyzeResponse)
-async def analyze_source_code(request: AiAnalyzeRequest):
+async def analyze_source_code(
+    request: AiAnalyzeRequest,
+    current_user: dict = Depends(get_current_user),
+):
     result = analyze_code(
         source_code=request.source_code,
         files=request.files,
@@ -88,7 +100,10 @@ async def analyze_source_code(request: AiAnalyzeRequest):
 
 
 @app.post("/api-docs/generate", response_model=ApiDocsResponse)
-async def create_api_documentation(request: ApiDocsRequest):
+async def create_api_documentation(
+    request: ApiDocsRequest,
+    current_user: dict = Depends(get_current_user),
+):
     result = await generate_api_documentation(request.source_code)
 
     return {
@@ -103,6 +118,7 @@ async def create_api_documentation(request: ApiDocsRequest):
 async def create_class_diagram(
     request: DiagramRequest,
     db: AsyncSession | None = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
 ):
     result = await generate_class_diagram(request.source_code)
 
@@ -133,7 +149,10 @@ async def create_class_diagram(
 
 
 @app.post("/diagram/architecture", response_model=GenericDiagramResponse)
-async def create_architecture_diagram(request: GenericDiagramRequest):
+async def create_architecture_diagram(
+    request: GenericDiagramRequest,
+    current_user: dict = Depends(get_current_user),
+):
     result = await generate_generic_diagram(
         "architecture",
         request.model_dump(exclude_none=True),
@@ -143,7 +162,10 @@ async def create_architecture_diagram(request: GenericDiagramRequest):
 
 
 @app.post("/diagram/cloud", response_model=GenericDiagramResponse)
-async def create_cloud_diagram(request: GenericDiagramRequest):
+async def create_cloud_diagram(
+    request: GenericDiagramRequest,
+    current_user: dict = Depends(get_current_user),
+):
     result = await generate_generic_diagram(
         "cloud",
         request.model_dump(exclude_none=True),
@@ -153,7 +175,10 @@ async def create_cloud_diagram(request: GenericDiagramRequest):
 
 
 @app.post("/diagram/profiles", response_model=GenericDiagramResponse)
-async def create_profiles_diagram(request: GenericDiagramRequest):
+async def create_profiles_diagram(
+    request: GenericDiagramRequest,
+    current_user: dict = Depends(get_current_user),
+):
     result = await generate_generic_diagram(
         "profiles",
         request.model_dump(exclude_none=True),
@@ -163,7 +188,10 @@ async def create_profiles_diagram(request: GenericDiagramRequest):
 
 
 @app.post("/diagram/flow", response_model=GenericDiagramResponse)
-async def create_flow_diagram(request: GenericDiagramRequest):
+async def create_flow_diagram(
+    request: GenericDiagramRequest,
+    current_user: dict = Depends(get_current_user),
+):
     result = await generate_generic_diagram(
         "flow",
         request.model_dump(exclude_none=True),
@@ -173,7 +201,10 @@ async def create_flow_diagram(request: GenericDiagramRequest):
 
 
 @app.get("/diagram/history", response_model=List[DiagramHistoryItem])
-async def get_diagram_history(db: AsyncSession | None = Depends(get_db)):
+async def get_diagram_history(
+    db: AsyncSession | None = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
     if db is None:
         raise HTTPException(
             status_code=503,
@@ -187,6 +218,7 @@ async def get_diagram_history(db: AsyncSession | None = Depends(get_db)):
 async def get_project_diagrams(
     project_id: str,
     db: AsyncSession | None = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
 ):
     if db is None:
         raise HTTPException(
