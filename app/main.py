@@ -19,17 +19,20 @@ from app.schemas import (
     DiagramHistoryItem,
     DiagramRequest,
     DiagramResponse,
+    GenericDiagramRequest,
+    GenericDiagramResponse,
 )
 from app.services.api_docs_flow import generate_api_documentation
 from app.services.ai_analyzer import analyze_code
 from app.services.diagram_flow import generate_class_diagram
+from app.services.generic_diagram_flow import generate_generic_diagram
 
 logger = logging.getLogger(__name__)
 
 app = FastAPI(
     title="DoculA Gateway API",
     description="Microsservico orquestrador do Modulo 5. Integra Parser API e Diagram API.",
-    version="0.4.0",
+    version="0.5.0",
 )
 
 app.add_middleware(
@@ -63,7 +66,7 @@ def health():
     return {
         "status": "ok",
         "service": "docula-gateway-api",
-        "version": "0.4.0",
+        "version": "0.5.0",
         "database": {
             "configured": is_database_configured()
         },
@@ -127,6 +130,46 @@ async def create_class_diagram(
         "classes": result["classes"],
         "plantuml": result["plantuml"],
     }
+
+
+@app.post("/diagram/architecture", response_model=GenericDiagramResponse)
+async def create_architecture_diagram(request: GenericDiagramRequest):
+    result = await generate_generic_diagram(
+        "architecture",
+        request.model_dump(exclude_none=True),
+    )
+
+    return result
+
+
+@app.post("/diagram/cloud", response_model=GenericDiagramResponse)
+async def create_cloud_diagram(request: GenericDiagramRequest):
+    result = await generate_generic_diagram(
+        "cloud",
+        request.model_dump(exclude_none=True),
+    )
+
+    return result
+
+
+@app.post("/diagram/profiles", response_model=GenericDiagramResponse)
+async def create_profiles_diagram(request: GenericDiagramRequest):
+    result = await generate_generic_diagram(
+        "profiles",
+        request.model_dump(exclude_none=True),
+    )
+
+    return result
+
+
+@app.post("/diagram/flow", response_model=GenericDiagramResponse)
+async def create_flow_diagram(request: GenericDiagramRequest):
+    result = await generate_generic_diagram(
+        "flow",
+        request.model_dump(exclude_none=True),
+    )
+
+    return result
 
 
 @app.get("/diagram/history", response_model=List[DiagramHistoryItem])

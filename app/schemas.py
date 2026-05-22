@@ -85,3 +85,18 @@ class AiAnalyzeResponse(BaseModel):
     architecture_notes: List[str]
     possible_entities: List[str]
     possible_relationships: List[str]
+
+
+class GenericDiagramRequest(BaseModel):
+    project_id: Optional[str] = None
+    project_name: Optional[str] = "Projeto DoculA"
+    description: Optional[str] = None
+    services: Optional[List[str]] = None
+    profiles: Optional[List[str]] = None
+
+
+class GenericDiagramResponse(BaseModel):
+    diagram_type: str
+    project_id: Optional[str] = None
+    project_name: Optional[str] = None
+    plantuml: str
