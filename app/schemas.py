@@ -9,6 +9,7 @@ class DiagramRequest(BaseModel):
     source_code: str
     diagram_type: Optional[str] = "uml-class"
     project_id: Optional[str] = None
+    company_id: Optional[str] = None
     project_name: Optional[str] = None
 
 
@@ -22,6 +23,7 @@ class DiagramResponse(BaseModel):
     title: str
     diagram_type: str
     project_id: Optional[str] = None
+    company_id: Optional[str] = None
     project_name: Optional[str] = None
     classes: List[ParsedClass]
     plantuml: str
@@ -45,6 +47,7 @@ class ApiDocsRequest(BaseModel):
     title: str
     source_code: str
     project_id: Optional[str] = None
+    company_id: Optional[str] = None
     project_name: Optional[str] = None
 
 
@@ -58,6 +61,7 @@ class ApiEndpoint(BaseModel):
 class ApiDocsResponse(BaseModel):
     title: str
     project_id: Optional[str] = None
+    company_id: Optional[str] = None
     project_name: Optional[str] = None
     endpoints: List[ApiEndpoint]
 
@@ -69,6 +73,7 @@ class SourceFile(BaseModel):
 
 class AiAnalyzeRequest(BaseModel):
     project_id: Optional[str] = None
+    company_id: Optional[str] = None
     project_name: Optional[str] = None
     source_code: Optional[str] = None
     repository_url: Optional[str] = None
@@ -78,6 +83,7 @@ class AiAnalyzeRequest(BaseModel):
 
 class AiAnalyzeResponse(BaseModel):
     project_id: Optional[str] = None
+    company_id: Optional[str] = None
     project_name: Optional[str] = None
     summary: str
     suggested_diagram_type: str
@@ -89,6 +95,7 @@ class AiAnalyzeResponse(BaseModel):
 
 class GenericDiagramRequest(BaseModel):
     project_id: Optional[str] = None
+    company_id: Optional[str] = None
     project_name: Optional[str] = "Projeto DoculA"
     description: Optional[str] = None
     services: Optional[List[str]] = None
@@ -98,5 +105,6 @@ class GenericDiagramRequest(BaseModel):
 class GenericDiagramResponse(BaseModel):
     diagram_type: str
     project_id: Optional[str] = None
+    company_id: Optional[str] = None
     project_name: Optional[str] = None
     plantuml: str

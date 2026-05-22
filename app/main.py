@@ -58,6 +58,11 @@ def root():
         "health": "/health",
         "auth": "/auth/me",
         "ai_analysis": "/ai/analyze",
+        "module_1_context": {
+            "project_id": "id",
+            "company_id": "companyId",
+            "token_header": "Authorization: Bearer TOKEN",
+        },
         "history": "/diagram/history",
         "projects_history": "/projects/{project_id}/diagrams",
     }
@@ -94,6 +99,7 @@ async def analyze_source_code(
 
     return {
         "project_id": request.project_id,
+        "company_id": request.company_id,
         "project_name": request.project_name,
         **result,
     }
@@ -109,6 +115,7 @@ async def create_api_documentation(
     return {
         "title": request.title,
         "project_id": request.project_id,
+        "company_id": request.company_id,
         "project_name": request.project_name,
         "endpoints": result["endpoints"],
     }
@@ -142,6 +149,7 @@ async def create_class_diagram(
         "title": request.title,
         "diagram_type": request.diagram_type or "uml-class",
         "project_id": request.project_id,
+        "company_id": request.company_id,
         "project_name": request.project_name,
         "classes": result["classes"],
         "plantuml": result["plantuml"],
