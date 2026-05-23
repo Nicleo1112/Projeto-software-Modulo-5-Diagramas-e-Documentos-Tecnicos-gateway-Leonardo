@@ -103,9 +103,19 @@ PARSER_API_URL=https://diagramas-parser-e6dzc7f5ateae3ce.canadacentral-01.azurew
 DIAGRAM_API_URL=https://diagramas-diagram-eugce0h0bygfdqhf.canadacentral-01.azurewebsites.net
 
 DATABASE_URL=postgresql://usuario:senha@servidor.postgres.database.azure.com:5432/nome_do_banco
+
+MODULE2_DATABASE_URL_1=postgresql://usuario:senha@host:5432/banco_1
+
+MODULE2_DATABASE_URL_2=postgresql://usuario:senha@host:5432/banco_2
+
+MODULE2_DB_SAMPLE_ROWS=3
+
+MODULE2_DB_MAX_TABLES=20
 ```
 
 Observação: `DATABASE_URL` é opcional na versão atual. Caso configurada, pode ser usada para persistir o histórico de diagramas gerados.
+
+`MODULE2_DATABASE_URL_1` e `MODULE2_DATABASE_URL_2` são opcionais. Quando configuradas, o Gateway coleta tabelas, colunas e pequenas amostras mascaradas dos bancos do Módulo 2 e envia esse contexto para o Diagram API gerar diagramas com IA.
 
 ## Endpoints
 

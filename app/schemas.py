@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import List, Optional
+from typing import Any, List, Optional
 
 from pydantic import BaseModel, ConfigDict
 
@@ -100,6 +100,7 @@ class GenericDiagramRequest(BaseModel):
     description: Optional[str] = None
     services: Optional[List[str]] = None
     profiles: Optional[List[str]] = None
+    external_context: Optional[dict[str, Any]] = None
 
 
 class GenericDiagramResponse(BaseModel):
