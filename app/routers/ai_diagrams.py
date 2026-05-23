@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.schemas import AiDiagramGenerateRequest, AiDiagramGenerateResponse
@@ -7,6 +9,7 @@ from app.services.external_database_service import buscar_dados_bancos
 
 
 router = APIRouter(prefix="/api/modulo5/diagramas", tags=["Diagramas com IA"])
+logger = logging.getLogger(__name__)
 
 
 @router.post("/gerar-ia", response_model=AiDiagramGenerateResponse)
@@ -26,7 +29,8 @@ async def gerar_diagrama_ia(
             codigo_fonte=request.codigo_fonte,
             dados_bancos=dados_bancos,
         )
-    except Exception:
+    except Exception as exc:
+        logger.exception("Falha ao gerar diagrama com IA: %s", exc)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Nao foi possivel gerar o diagrama com IA agora. Tente novamente em instantes.",
