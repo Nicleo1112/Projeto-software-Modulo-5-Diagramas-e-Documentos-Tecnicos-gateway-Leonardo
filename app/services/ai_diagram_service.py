@@ -5,6 +5,11 @@ from typing import Any
 
 
 DEFAULT_OPENAI_MODEL = "gpt-4.1-mini"
+DEFAULT_GROQ_MODEL = "llama-3.1-8b-instant"
+SYSTEM_PROMPT = (
+    "Voce e um engenheiro de software especialista em arquitetura, UML, "
+    "documentacao tecnica e engenharia reversa visual."
+)
 
 
 def gerar_diagrama_com_ia(
@@ -13,40 +18,14 @@ def gerar_diagrama_com_ia(
     codigo_fonte: str,
     dados_bancos: dict,
 ) -> dict:
-    api_key = os.getenv("OPENAI_API_KEY")
-
-    if not api_key:
-        raise RuntimeError("OPENAI_API_KEY nao configurada no servidor.")
-
-    from openai import OpenAI
-
-    client = OpenAI(api_key=api_key)
-    model = os.getenv("OPENAI_MODEL", DEFAULT_OPENAI_MODEL)
-
-    response = client.responses.create(
-        model=model,
-        input=[
-            {
-                "role": "system",
-                "content": (
-                    "Voce e um engenheiro de software especialista em arquitetura, UML, "
-                    "documentacao tecnica e engenharia reversa visual."
-                ),
-            },
-            {
-                "role": "user",
-                "content": _build_prompt(
-                    tipo_diagrama=tipo_diagrama,
-                    titulo=titulo,
-                    codigo_fonte=codigo_fonte,
-                    dados_bancos=dados_bancos,
-                ),
-            },
-        ],
-        max_output_tokens=3000,
+    prompt = _build_prompt(
+        tipo_diagrama=tipo_diagrama,
+        titulo=titulo,
+        codigo_fonte=codigo_fonte,
+        dados_bancos=dados_bancos,
     )
 
-    raw_text = _extract_output_text(response)
+    raw_text = _generate_ai_response(prompt)
     payload = _parse_json_response(raw_text)
 
     plantuml = _normalize_plantuml(str(payload.get("plantuml") or ""))
@@ -64,6 +43,71 @@ def gerar_diagrama_com_ia(
             plantuml,
         ),
     }
+
+
+def _generate_ai_response(prompt: str) -> str:
+    provider = os.getenv("AI_PROVIDER", "openai").lower()
+
+    if provider == "groq":
+        return _generate_with_groq(prompt)
+
+    return _generate_with_openai(prompt)
+
+
+def _generate_with_openai(prompt: str) -> str:
+    api_key = os.getenv("OPENAI_API_KEY")
+
+    if not api_key:
+        raise RuntimeError("OPENAI_API_KEY nao configurada no servidor.")
+
+    from openai import OpenAI
+
+    client = OpenAI(api_key=api_key)
+    response = client.responses.create(
+        model=os.getenv("OPENAI_MODEL", DEFAULT_OPENAI_MODEL),
+        input=[
+            {
+                "role": "system",
+                "content": SYSTEM_PROMPT,
+            },
+            {
+                "role": "user",
+                "content": prompt,
+            },
+        ],
+        max_output_tokens=3000,
+    )
+
+    return _extract_response_text(response)
+
+
+def _generate_with_groq(prompt: str) -> str:
+    api_key = os.getenv("GROQ_API_KEY")
+
+    if not api_key:
+        raise RuntimeError("GROQ_API_KEY nao configurada no servidor.")
+
+    from groq import Groq
+
+    client = Groq(api_key=api_key)
+    response = client.chat.completions.create(
+        model=os.getenv("GROQ_MODEL") or os.getenv("AI_MODEL", DEFAULT_GROQ_MODEL),
+        messages=[
+            {
+                "role": "system",
+                "content": SYSTEM_PROMPT,
+            },
+            {
+                "role": "user",
+                "content": prompt,
+            },
+        ],
+        temperature=0.2,
+        max_tokens=3000,
+        response_format={"type": "json_object"},
+    )
+
+    return response.choices[0].message.content or ""
 
 
 def _build_prompt(
@@ -107,7 +151,7 @@ Formato obrigatorio da resposta:
 """.strip()
 
 
-def _extract_output_text(response: Any) -> str:
+def _extract_response_text(response: Any) -> str:
     output_text = getattr(response, "output_text", None)
     if output_text:
         return output_text

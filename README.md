@@ -110,16 +110,30 @@ MODULE2_MAX_ARTIFACTS=12
 
 MODULE2_MAX_ARTIFACT_CHARS=6000
 
+AI_PROVIDER=openai
+
 OPENAI_API_KEY=sua_chave_openai
 
 OPENAI_MODEL=gpt-4.1-mini
+
+GROQ_API_KEY=sua_chave_groq
+
+GROQ_MODEL=llama-3.1-8b-instant
 ```
 
 Observação: `DATABASE_URL` é opcional na versão atual. Caso configurada, pode ser usada para persistir o histórico de diagramas gerados.
 
 `MODULE2_UPLOAD_API_URL` aponta para o microsserviço de Upload/Ingestão do Módulo 2. O Gateway consulta `GET /api/projeto/{projeto_id}/artefatos` com o mesmo token JWT do usuário, baixa os arquivos textuais pela `url_documento` e envia esse contexto para a IA gerar diagramas.
 
-`OPENAI_API_KEY` deve ser configurada somente no backend. Nunca exponha essa chave no frontend ou no repositório.
+`OPENAI_API_KEY` e `GROQ_API_KEY` devem ser configuradas somente no backend. Nunca exponha essas chaves no frontend ou no repositório.
+
+Para usar Groq sem credito da OpenAI, configure:
+
+```txt
+AI_PROVIDER=groq
+GROQ_API_KEY=sua_chave_groq
+GROQ_MODEL=llama-3.1-8b-instant
+```
 
 ## Endpoints
 

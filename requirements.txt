@@ -8,3 +8,4 @@ asyncpg
 gunicorn
 PyJWT
 openai
+groq
