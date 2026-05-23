@@ -12,6 +12,7 @@ from app.repositories import (
     list_diagrams_by_project,
     save_diagram_history,
 )
+from app.routers.ai_diagrams import router as ai_diagrams_router
 from app.schemas import (
     AiAnalyzeRequest,
     AiAnalyzeResponse,
@@ -44,6 +45,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(ai_diagrams_router)
+
 
 @app.on_event("startup")
 async def startup():
@@ -58,6 +61,7 @@ def root():
         "health": "/health",
         "auth": "/auth/me",
         "ai_analysis": "/ai/analyze",
+        "ai_diagram_generation": "/api/modulo5/diagramas/gerar-ia",
         "module_1_context": {
             "project_id": "id",
             "company_id": "companyId",

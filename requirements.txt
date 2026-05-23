@@ -7,3 +7,4 @@ sqlalchemy
 asyncpg
 gunicorn
 PyJWT
+openai

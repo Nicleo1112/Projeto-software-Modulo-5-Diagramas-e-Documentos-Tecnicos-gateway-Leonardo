@@ -109,3 +109,18 @@ class GenericDiagramResponse(BaseModel):
     company_id: Optional[str] = None
     project_name: Optional[str] = None
     plantuml: str
+
+
+class AiDiagramGenerateRequest(BaseModel):
+    tipo_diagrama: str
+    titulo: str
+    codigo_fonte: str
+    projeto_id: Optional[str] = None
+
+
+class AiDiagramGenerateResponse(BaseModel):
+    title: str
+    diagram_type: str
+    plantuml: str
+    technical_explanation: str
+    elements_count: int

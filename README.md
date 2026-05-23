@@ -111,11 +111,17 @@ MODULE2_DATABASE_URL_2=postgresql://usuario:senha@host:5432/banco_2
 MODULE2_DB_SAMPLE_ROWS=3
 
 MODULE2_DB_MAX_TABLES=20
+
+OPENAI_API_KEY=sua_chave_openai
+
+OPENAI_MODEL=gpt-4.1-mini
 ```
 
 Observação: `DATABASE_URL` é opcional na versão atual. Caso configurada, pode ser usada para persistir o histórico de diagramas gerados.
 
 `MODULE2_DATABASE_URL_1` e `MODULE2_DATABASE_URL_2` são opcionais. Quando configuradas, o Gateway coleta tabelas, colunas e pequenas amostras mascaradas dos bancos do Módulo 2 e envia esse contexto para o Diagram API gerar diagramas com IA.
+
+`OPENAI_API_KEY` deve ser configurada somente no backend. Nunca exponha essa chave no frontend ou no repositório.
 
 ## Endpoints
 
@@ -123,6 +129,36 @@ Observação: `DATABASE_URL` é opcional na versão atual. Caso configurada, pod
 
 ```http
 GET /health
+```
+
+### Gerar diagrama com IA
+
+```http
+POST /api/modulo5/diagramas/gerar-ia
+Authorization: Bearer TOKEN
+```
+
+Exemplo de entrada:
+
+```json
+{
+  "tipo_diagrama": "UML de Classes",
+  "titulo": "Diagrama de usuarios",
+  "codigo_fonte": "public class Usuario { private String nome; private String email; }",
+  "projeto_id": "7"
+}
+```
+
+Exemplo de resposta:
+
+```json
+{
+  "title": "Diagrama de Classes - Usuarios",
+  "diagram_type": "UML de Classes",
+  "plantuml": "@startuml\nclass Usuario {\n  +String nome\n  +String email\n}\n@enduml",
+  "technical_explanation": "O diagrama representa a classe Usuario com seus principais atributos.",
+  "elements_count": 1
+}
 ```
 
 Exemplo de resposta:
