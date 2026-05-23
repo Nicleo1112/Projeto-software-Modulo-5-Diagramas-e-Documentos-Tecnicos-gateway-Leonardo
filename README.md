@@ -104,13 +104,11 @@ DIAGRAM_API_URL=https://diagramas-diagram-eugce0h0bygfdqhf.canadacentral-01.azur
 
 DATABASE_URL=postgresql://usuario:senha@servidor.postgres.database.azure.com:5432/nome_do_banco
 
-MODULE2_DATABASE_URL_1=postgresql://usuario:senha@host:5432/banco_1
+MODULE2_UPLOAD_API_URL=https://docuia-api-upload.azurewebsites.net
 
-MODULE2_DATABASE_URL_2=postgresql://usuario:senha@host:5432/banco_2
+MODULE2_MAX_ARTIFACTS=12
 
-MODULE2_DB_SAMPLE_ROWS=3
-
-MODULE2_DB_MAX_TABLES=20
+MODULE2_MAX_ARTIFACT_CHARS=6000
 
 OPENAI_API_KEY=sua_chave_openai
 
@@ -119,7 +117,7 @@ OPENAI_MODEL=gpt-4.1-mini
 
 Observação: `DATABASE_URL` é opcional na versão atual. Caso configurada, pode ser usada para persistir o histórico de diagramas gerados.
 
-`MODULE2_DATABASE_URL_1` e `MODULE2_DATABASE_URL_2` são opcionais. Quando configuradas, o Gateway coleta tabelas, colunas e pequenas amostras mascaradas dos bancos do Módulo 2 e envia esse contexto para o Diagram API gerar diagramas com IA.
+`MODULE2_UPLOAD_API_URL` aponta para o microsserviço de Upload/Ingestão do Módulo 2. O Gateway consulta `GET /api/projeto/{projeto_id}/artefatos` com o mesmo token JWT do usuário, baixa os arquivos textuais pela `url_documento` e envia esse contexto para a IA gerar diagramas.
 
 `OPENAI_API_KEY` deve ser configurada somente no backend. Nunca exponha essa chave no frontend ou no repositório.
 

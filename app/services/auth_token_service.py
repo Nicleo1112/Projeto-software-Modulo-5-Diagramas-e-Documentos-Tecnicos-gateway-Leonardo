@@ -13,6 +13,7 @@ def validar_token_jwt(token: str) -> dict:
     return {
         "valido": True,
         "modo": "validacao_jwt_pendente",
+        "token": token,
     }
 
 

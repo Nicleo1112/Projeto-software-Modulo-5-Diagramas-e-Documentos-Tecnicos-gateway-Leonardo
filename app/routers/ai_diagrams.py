@@ -12,9 +12,12 @@ router = APIRouter(prefix="/api/modulo5/diagramas", tags=["Diagramas com IA"])
 @router.post("/gerar-ia", response_model=AiDiagramGenerateResponse)
 async def gerar_diagrama_ia(
     request: AiDiagramGenerateRequest,
-    _usuario: dict = Depends(exigir_token_bearer),
+    usuario: dict = Depends(exigir_token_bearer),
 ):
-    dados_bancos = await buscar_dados_bancos(request.projeto_id)
+    dados_bancos = await buscar_dados_bancos(
+        projeto_id=request.projeto_id,
+        token=usuario.get("token"),
+    )
 
     try:
         return gerar_diagrama_com_ia(

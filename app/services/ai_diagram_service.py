@@ -75,7 +75,7 @@ def _build_prompt(
     bancos_json = json.dumps(dados_bancos, ensure_ascii=False, indent=2, default=str)
 
     return f"""
-Analise o codigo-fonte e os dados dos bancos externos para gerar um diagrama PlantUML coerente.
+Analise o codigo-fonte informado e os artefatos externos do Modulo 2 para gerar um diagrama PlantUML coerente.
 
 Tipo do diagrama: {tipo_diagrama}
 Titulo: {titulo}
@@ -83,7 +83,7 @@ Titulo: {titulo}
 Codigo-fonte:
 {codigo_fonte}
 
-Dados dos bancos externos:
+Artefatos externos do Modulo 2:
 {bancos_json}
 
 Regras obrigatorias:
