@@ -1,12 +1,29 @@
 # DoculA Gateway API
 
-Microsserviço orquestrador do **Módulo 5 — Diagramas e Documentos Técnicos** da plataforma DoculA.
+## Descrição
 
-O Gateway API é responsável por integrar a **Parser API** e a **Diagram API**, coordenando o fluxo completo de geração de diagramas UML a partir de código-fonte enviado pelo frontend.
+O DoculA Gateway API é o ponto central de orquestração do Módulo 5 - Diagramas e Documentos Técnicos da plataforma DoculA.
+
+Ele recebe requisições do frontend e coordena a integração entre autenticação, análise de código, geração de diagramas, documentação técnica, histórico PostgreSQL e comunicação com outros módulos da plataforma.
+
+Responsabilidades principais:
+
+- Receber requisições do frontend.
+- Validar autenticação JWT.
+- Integrar com a Parser API.
+- Integrar com a Diagram API.
+- Integrar IA para geração de diagramas.
+- Consultar artefatos do Módulo 2.
+- Salvar diagramas gerados no Módulo 2.
+- Manter histórico de diagramas quando `DATABASE_URL` estiver configurado.
 
 ## Arquitetura
 
+Fluxo principal de integração:
+
 ```txt
+Módulo 1
+   ↓ JWT, project_id, company_id
 Frontend
    ↓
 Gateway API
@@ -14,77 +31,94 @@ Gateway API
 Parser API
    ↓
 Diagram API
-````
+   ↓
+Módulo 2 Upload/Ingestão
+```
 
-## Responsabilidades do Gateway
+Fluxo de geração com IA:
 
-* Receber requisições do frontend;
-* Encaminhar código-fonte para a Parser API;
-* Receber classes, atributos e métodos extraídos;
-* Enviar os dados estruturados para a Diagram API;
-* Retornar o PlantUML gerado ao frontend;
-* Centralizar a integração entre os microsserviços do módulo;
-* Disponibilizar um ponto único de comunicação para outros módulos da plataforma.
+```txt
+Frontend
+   ↓
+Gateway API
+   ↓
+Módulo 2 Artefatos
+   ↓
+IA
+   ↓
+PlantUML
+   ↓
+Módulo 2 Upload
+```
 
-## Deploy em Produção
+## Deploy Em Produção
 
-### Gateway API
+Gateway API:
 
 ```txt
 https://docula-gateway-api-dzgfg8ghghadeedd.eastus-01.azurewebsites.net/
 ```
 
-### Swagger/OpenAPI do Gateway
+Swagger/OpenAPI:
 
 ```txt
 https://docula-gateway-api-dzgfg8ghghadeedd.eastus-01.azurewebsites.net/docs
 ```
 
-### Parser API
+Parser API:
 
 ```txt
 https://diagramas-parser-e6dzc7f5ateae3ce.canadacentral-01.azurewebsites.net
 ```
 
-### Diagram API
+Diagram API:
 
 ```txt
 https://diagramas-diagram-eugce0h0bygfdqhf.canadacentral-01.azurewebsites.net
 ```
 
+Módulo 2 Upload API:
+
+```txt
+https://docuia-api-upload.azurewebsites.net
+```
+
 ## Requisitos
 
-* Python 3.10+
-* Parser API disponível
-* Diagram API disponível
-* Opcional: PostgreSQL configurado em `DATABASE_URL`
+- Python 3.10+
+- FastAPI
+- Uvicorn
+- HTTPX
+- Pydantic
+- SQLAlchemy
+- PostgreSQL opcional
+- PyJWT
+- OpenAI ou Groq para IA
 
-## Instalação
+## Instalação Local
 
 ```powershell
 pip install -r requirements.txt
 ```
 
-## Como executar localmente
+## Como Executar Localmente
 
-Execute os microsserviços em terminais separados.
+Gateway API:
 
-### Parser API
+```powershell
+python -m uvicorn app.main:app --reload --port 8000
+```
+
+Parser API recomendada:
 
 ```powershell
 python -m uvicorn app.main:app --reload --port 8001
 ```
 
-### Diagram API
+Diagram API recomendada:
 
 ```powershell
 python -m uvicorn app.main:app --reload --port 8002
-```
-
-### Gateway API
-
-```powershell
-python -m uvicorn app.main:app --reload --port 8000
 ```
 
 Swagger/OpenAPI local:
@@ -93,71 +127,218 @@ Swagger/OpenAPI local:
 http://127.0.0.1:8000/docs
 ```
 
-## Variáveis de ambiente
-
-Em ambiente local ou produção, configure:
+## Variáveis De Ambiente
 
 ```txt
 PARSER_API_URL=https://diagramas-parser-e6dzc7f5ateae3ce.canadacentral-01.azurewebsites.net
-
 DIAGRAM_API_URL=https://diagramas-diagram-eugce0h0bygfdqhf.canadacentral-01.azurewebsites.net
-
-DATABASE_URL=postgresql://usuario:senha@servidor.postgres.database.azure.com:5432/nome_do_banco
-
+DATABASE_URL=postgresql://usuario:senha@host:5432/banco
+JWT_SECRET_KEY=sua_chave_do_modulo_1
+JWT_ALGORITHM=HS256
+AUTH_REQUIRED=false
 MODULE2_UPLOAD_API_URL=https://docuia-api-upload.azurewebsites.net
-
 MODULE2_MAX_ARTIFACTS=12
-
 MODULE2_MAX_ARTIFACT_CHARS=6000
-
-AI_PROVIDER=openai
-
-OPENAI_API_KEY=sua_chave_openai
-
-OPENAI_MODEL=gpt-4.1-mini
-
-GROQ_API_KEY=sua_chave_groq
-
-GROQ_MODEL=llama-3.1-8b-instant
-```
-
-Observação: `DATABASE_URL` é opcional na versão atual. Caso configurada, pode ser usada para persistir o histórico de diagramas gerados.
-
-`MODULE2_UPLOAD_API_URL` aponta para o microsserviço de Upload/Ingestão do Módulo 2. O Gateway consulta `GET /api/projeto/{projeto_id}/artefatos` com o mesmo token JWT do usuário, baixa os arquivos textuais pela `url_documento` e envia esse contexto para a IA gerar diagramas.
-
-`OPENAI_API_KEY` e `GROQ_API_KEY` devem ser configuradas somente no backend. Nunca exponha essas chaves no frontend ou no repositório.
-
-Para usar Groq sem credito da OpenAI, configure:
-
-```txt
+MODULE2_API_TIMEOUT_SECONDS=15
 AI_PROVIDER=groq
+OPENAI_API_KEY=sua_chave_openai
+OPENAI_MODEL=gpt-4.1-mini
 GROQ_API_KEY=sua_chave_groq
 GROQ_MODEL=llama-3.1-8b-instant
 ```
 
-## Endpoints
+Observações:
 
-### Health check
+- `JWT_SECRET_KEY` não deve ir para o GitHub.
+- `OPENAI_API_KEY` e `GROQ_API_KEY` não devem ir para o frontend nem para o GitHub.
+- `AUTH_REQUIRED=false` permite modo desenvolvimento para os endpoints protegidos do Gateway.
+- `AUTH_REQUIRED=true` exige token JWT nos endpoints protegidos.
+- `DATABASE_URL` é opcional. Quando configurada, habilita persistência de histórico PostgreSQL.
+- `MODULE2_UPLOAD_API_URL` aponta para o serviço de Upload/Ingestão do Módulo 2.
+
+## Endpoints Principais
+
+Endpoints públicos:
 
 ```http
+GET /
 GET /health
 ```
 
-### Gerar diagrama com IA
+Autenticação:
 
 ```http
+GET /auth/me
+```
+
+Diagramas:
+
+```http
+POST /diagram/class
+POST /diagram/architecture
+POST /diagram/cloud
+POST /diagram/profiles
+POST /diagram/flow
+```
+
+Documentação e análise:
+
+```http
+POST /api-docs/generate
+POST /ai/analyze
+```
+
+Histórico:
+
+```http
+GET /diagram/history
+GET /projects/{project_id}/diagrams
+```
+
+Integração com Módulo 2 e IA:
+
+```http
+GET /api/modulo5/diagramas/projetos/{projeto_id}/artefatos
 POST /api/modulo5/diagramas/gerar-ia
+```
+
+## Exemplos De Uso
+
+### GET /auth/me
+
+```http
+GET /auth/me
 Authorization: Bearer TOKEN
 ```
 
-Exemplo de entrada:
+Exemplo de resposta:
+
+```json
+{
+  "valido": true,
+  "user_id": "123",
+  "email": "usuario@docula.com",
+  "nome": "Usuário DoculA"
+}
+```
+
+### POST /diagram/class
+
+```json
+{
+  "title": "Diagrama Pedido",
+  "diagram_type": "uml-class",
+  "project_id": "10",
+  "company_id": "6",
+  "project_name": "Projeto DoculA",
+  "source_code": "public class Usuario { private String nome; public void login() { } } public class Pedido extends Entidade { private Usuario usuario; public void finalizar() { } }"
+}
+```
+
+Exemplo de resposta:
+
+```json
+{
+  "title": "Diagrama Pedido",
+  "diagram_type": "uml-class",
+  "project_id": "10",
+  "company_id": "6",
+  "project_name": "Projeto DoculA",
+  "classes": [
+    {
+      "name": "Usuario",
+      "attributes": ["nome"],
+      "methods": ["login"]
+    },
+    {
+      "name": "Pedido",
+      "attributes": ["usuario"],
+      "methods": ["finalizar"]
+    }
+  ],
+  "plantuml": "@startuml\nclass Entidade\nclass Usuario {\n  nome\n  login()\n}\nclass Pedido {\n  usuario\n  finalizar()\n}\nPedido --|> Entidade\nPedido --> Usuario\n@enduml"
+}
+```
+
+### POST /api-docs/generate
+
+```json
+{
+  "title": "Documentação API Usuários",
+  "project_id": "10",
+  "company_id": "6",
+  "project_name": "Projeto DoculA",
+  "source_code": "from fastapi import FastAPI\napp = FastAPI()\n@app.get('/users')\ndef list_users(): pass\n@app.post('/users')\ndef create_user(): pass"
+}
+```
+
+Exemplo de resposta:
+
+```json
+{
+  "title": "Documentação API Usuários",
+  "project_id": "10",
+  "company_id": "6",
+  "project_name": "Projeto DoculA",
+  "endpoints": [
+    {
+      "method": "GET",
+      "path": "/users",
+      "framework": "FastAPI",
+      "description": "Endpoint GET detectado automaticamente em /users"
+    },
+    {
+      "method": "POST",
+      "path": "/users",
+      "framework": "FastAPI",
+      "description": "Endpoint POST detectado automaticamente em /users"
+    }
+  ]
+}
+```
+
+### GET /api/modulo5/diagramas/projetos/{projeto_id}/artefatos
+
+```http
+GET /api/modulo5/diagramas/projetos/10/artefatos
+Authorization: Bearer TOKEN
+```
+
+Esse endpoint consulta o Módulo 2 em:
+
+```txt
+GET /api/projeto/{projeto_id}/artefatos
+```
+
+Exemplo de resposta:
+
+```json
+{
+  "source": "module2_upload_api",
+  "status": "ok",
+  "project_id": "10",
+  "artifacts_count": 2,
+  "artifacts": [
+    {
+      "id": 1,
+      "nome_arquivo": "Usuario.java",
+      "tipo": "codigo-fonte",
+      "url_documento": "https://exemplo/Usuario.java"
+    }
+  ]
+}
+```
+
+### POST /api/modulo5/diagramas/gerar-ia
 
 ```json
 {
   "tipo_diagrama": "UML de Classes",
-  "titulo": "Diagrama de usuarios",
-  "codigo_fonte": "public class Usuario { private String nome; private String email; }",
-  "projeto_id": "7"
+  "titulo": "Diagrama com artefatos",
+  "codigo_fonte": "",
+  "projeto_id": "10",
+  "artifact_ids": [1, 2],
+  "save_to_upload_module": true
 }
 ```
 
@@ -165,111 +346,130 @@ Exemplo de resposta:
 
 ```json
 {
-  "title": "Diagrama de Classes - Usuarios",
+  "title": "Diagrama com artefatos",
   "diagram_type": "UML de Classes",
-  "plantuml": "@startuml\nclass Usuario {\n  +String nome\n  +String email\n}\n@enduml",
-  "technical_explanation": "O diagrama representa a classe Usuario com seus principais atributos.",
-  "elements_count": 1
+  "plantuml": "@startuml\nclass Usuario\nclass Pedido\nPedido --> Usuario\n@enduml",
+  "technical_explanation": "Diagrama gerado por IA a partir do código e dos artefatos do Módulo 2.",
+  "elements_count": 2,
+  "upload_status": "saved",
+  "upload_message": "Diagrama salvo no Modulo 2."
 }
 ```
 
-Exemplo de resposta:
+Quando `save_to_upload_module=true`, o Gateway envia o PlantUML gerado para o Módulo 2 pelo endpoint:
 
-```json
-{
-  "status": "ok",
-  "service": "docula-gateway-api"
-}
+```txt
+POST /api/upload-diagrama
 ```
 
-### Gerar diagrama UML de classes
+O arquivo salvo atualmente é um `.puml` com MIME `text/plain`.
 
-```http
-POST /diagram/class
+## Integração Com Módulo 1
+
+O Módulo 1 autentica o usuário e redireciona para o Frontend do Módulo 5 com os dados do projeto e o token JWT.
+
+Fluxo:
+
+- O Módulo 1 envia `id`, `companyId` e `token` para o Frontend.
+- O Frontend salva o token e envia `Authorization: Bearer TOKEN` para o Gateway.
+- O Gateway valida o token com `JWT_SECRET_KEY`.
+- `project_id` vem do parâmetro `id`.
+- `company_id` vem do parâmetro `companyId`.
+
+URL de integração:
+
+```txt
+https://docula-modulo5-front-gabriel-gcgmcjbeg2dze3bs.canadacentral-01.azurewebsites.net/projetos?id={PROJECT_ID}&token={JWT_TOKEN}&companyId={COMPANY_ID}
 ```
 
-Exemplo de entrada:
+## Integração Com Módulo 2
 
-```json
-{
-  "title": "Diagrama Usuario",
-  "source_code": "public class Usuario { private String nome; private String email; public void login() { } public void logout() { } }"
-}
+O Gateway integra com o serviço de Upload/Ingestão do Módulo 2.
+
+Fluxo:
+
+- O Gateway consulta os artefatos pelo endpoint do Módulo 2:
+
+```txt
+GET /api/projeto/{projeto_id}/artefatos
 ```
 
-Exemplo de resposta:
+- O Gateway baixa os arquivos textuais pela `url_documento`.
+- O Gateway envia os artefatos para a IA como contexto.
+- O Gateway pode salvar o diagrama gerado no Módulo 2:
 
-```json
-{
-  "title": "Diagrama Usuario",
-  "classes": [
-    {
-      "name": "Usuario",
-      "attributes": ["nome", "email"],
-      "methods": ["login", "logout"]
-    }
-  ],
-  "plantuml": "@startuml\nclass Usuario {\n  nome\n  email\n  login()\n  logout()\n}\n@enduml"
-}
+```txt
+POST /api/upload-diagrama
 ```
 
-### Histórico de diagramas
+- O arquivo salvo atualmente é um `.puml` com MIME `text/plain`.
 
-Caso o banco de dados esteja configurado, o Gateway pode salvar e consultar o histórico de diagramas gerados.
+## IA
+
+O Gateway possui geração de diagramas com IA a partir de código-fonte e artefatos externos do Módulo 2.
+
+O provider pode ser:
+
+- OpenAI
+- Groq
+
+A IA retorna JSON com:
+
+```txt
+title
+diagram_type
+plantuml
+technical_explanation
+elements_count
+```
+
+O PlantUML deve começar com:
+
+```txt
+@startuml
+```
+
+E terminar com:
+
+```txt
+@enduml
+```
+
+## Histórico
+
+Se `DATABASE_URL` estiver configurada, o Gateway salva o histórico dos diagramas gerados.
+
+Endpoints:
 
 ```http
 GET /diagram/history
+GET /projects/{project_id}/diagrams
 ```
 
-## Fluxo de funcionamento
+`GET /diagram/history` lista o histórico geral.
 
-```txt
-1. O usuário envia código-fonte pelo frontend.
-2. O frontend chama o Gateway API.
-3. O Gateway envia o código para a Parser API.
-4. A Parser API extrai classes, atributos e métodos.
-5. O Gateway envia os dados estruturados para a Diagram API.
-6. A Diagram API gera o PlantUML.
-7. O Gateway retorna o resultado para o frontend.
-```
+`GET /projects/{project_id}/diagrams` lista o histórico por projeto.
 
-## Papel na integração com outros módulos
+## Tecnologias Utilizadas
 
-O Gateway API atua como ponto central de integração do Módulo 5.
-
-Outros módulos da plataforma podem consumir este serviço para gerar e recuperar diagramas automaticamente, incluindo:
-
-* Módulo de Relatórios;
-* Módulo de Apresentações;
-* Módulo de Consulta;
-* Plataforma HUB;
-* Módulo de Ingestão de Dados.
-
-Exemplo de uso por outros módulos:
-
-```txt
-Relatórios → Gateway API → Diagrama UML → PDF/DOCX
-Apresentações → Gateway API → Diagrama UML → Slides
-Consulta → Gateway API → Estrutura do código → Respostas sobre arquitetura
-HUB → Gateway API → Diagramas do projeto
-```
-
-## Tecnologias utilizadas
-
-* Python
-* FastAPI
-* Uvicorn
-* HTTPX
-* Pydantic
-* PostgreSQL
-* SQLAlchemy
-* Azure App Service
+- Python
+- FastAPI
+- Uvicorn
+- HTTPX
+- Pydantic
+- SQLAlchemy
+- PostgreSQL
+- PyJWT
+- OpenAI SDK
+- Groq SDK
+- Azure App Service
+- PlantUML
 
 ## Deploy
 
-O serviço está preparado para deploy em **Azure App Service**.
+O serviço está preparado para deploy em Azure App Service.
 
-Startup command utilizado:
+Startup command:
 
 ```bash
 python -m uvicorn app.main:app --host 0.0.0.0 --port 8000
@@ -277,29 +477,36 @@ python -m uvicorn app.main:app --host 0.0.0.0 --port 8000
 
 ## Versionamento
 
-O projeto utiliza versionamento semântico.
-
-Versão atual:
+Versão final:
 
 ```txt
-v0.1.1
+v1.0.0
 ```
 
-Histórico inicial:
+Histórico:
 
 ```txt
-v0.1.0 - Integração inicial entre Parser API e Diagram API
-v0.1.1 - Preparação para deploy Azure
+v0.1.0 - Integração inicial Parser API e Diagram API
+v0.2.0 - Histórico PostgreSQL
+v0.3.0 - Documentação de API e vínculo com projetos
+v0.4.0 - Análise inteligente de código
+v0.5.0 - Integração dos tipos architecture, cloud, profiles e flow
+v0.6.0 - Validação JWT para integração com Módulo 1
+v0.6.1 - Suporte a company_id no contrato com Módulo 1
+v0.7.0 - Integração com artefatos do Módulo 2
+v1.0.0 - Versão final do Gateway API para entrega do Módulo 5
 ```
 
-## Observação
-
-Este microsserviço não é responsável por fazer o parsing do código nem gerar diretamente o PlantUML.
-
-Essas responsabilidades são separadas em outros microsserviços:
+## Status Atual
 
 ```txt
-Parser API → análise do código-fonte
-Diagram API → geração do PlantUML
-Gateway API → orquestração do fluxo
+Gateway online
+JWT funcionando
+Parser integrado
+Diagram integrado
+IA integrada
+Módulo 1 integrado
+Módulo 2 integrado
+Histórico PostgreSQL configurável
+Deploy em Azure funcionando
 ```
