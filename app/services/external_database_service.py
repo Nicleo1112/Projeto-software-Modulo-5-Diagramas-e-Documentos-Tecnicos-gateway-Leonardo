@@ -43,7 +43,7 @@ TEXT_TYPES = {
 }
 
 
-async def buscar_dados_bancos(projeto_id: str | None, token: str | None = None) -> dict[str, Any]:
+async def listar_artefatos_modulo2(projeto_id: str | None, token: str | None = None) -> dict[str, Any]:
     if not projeto_id:
         return _mock_context("Projeto nao informado.")
 
@@ -60,11 +60,6 @@ async def buscar_dados_bancos(projeto_id: str | None, token: str | None = None) 
             payload = response.json()
 
             artefatos = payload.get("artefatos", [])
-            selected_artifacts = _select_relevant_artifacts(artefatos)
-            files = []
-
-            for artifact in selected_artifacts:
-                files.append(await _build_artifact_context(client, artifact))
     except Exception as exc:
         return {
             "source": "module2_upload_api",
@@ -73,7 +68,7 @@ async def buscar_dados_bancos(projeto_id: str | None, token: str | None = None) 
             "artifacts_endpoint": artefatos_url,
             "message": "Nao foi possivel consultar os artefatos do Modulo 2.",
             "error": str(exc),
-            "files": [],
+            "artifacts": [],
         }
 
     return {
@@ -82,7 +77,39 @@ async def buscar_dados_bancos(projeto_id: str | None, token: str | None = None) 
         "project_id": projeto_id,
         "artifacts_endpoint": artefatos_url,
         "artifacts_count": len(artefatos),
+        "artifacts": [_summarize_artifact(artifact) for artifact in artefatos],
+    }
+
+
+async def buscar_dados_bancos(
+    projeto_id: str | None,
+    token: str | None = None,
+    artifact_ids: list[int] | None = None,
+) -> dict[str, Any]:
+    artifacts_response = await listar_artefatos_modulo2(projeto_id=projeto_id, token=token)
+
+    if artifacts_response.get("status") != "ok":
+        return {
+            **artifacts_response,
+            "files": [],
+        }
+
+    artefatos = artifacts_response.get("artifacts", [])
+    selected_artifacts = _select_relevant_artifacts(artefatos, artifact_ids)
+    files = []
+
+    async with httpx.AsyncClient(timeout=REQUEST_TIMEOUT_SECONDS, follow_redirects=True) as client:
+        for artifact in selected_artifacts:
+            files.append(await _build_artifact_context(client, artifact))
+
+    return {
+        "source": "module2_upload_api",
+        "status": "ok",
+        "project_id": projeto_id,
+        "artifacts_endpoint": artifacts_response.get("artifacts_endpoint"),
+        "artifacts_count": artifacts_response.get("artifacts_count", 0),
         "selected_artifacts_count": len(selected_artifacts),
+        "selected_artifact_ids": [artifact.get("id") for artifact in selected_artifacts],
         "files": files,
     }
 
@@ -113,13 +140,30 @@ async def _build_artifact_context(client: httpx.AsyncClient, artifact: dict[str,
     return context
 
 
-def _select_relevant_artifacts(artefatos: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def _select_relevant_artifacts(
+    artefatos: list[dict[str, Any]],
+    artifact_ids: list[int] | None = None,
+) -> list[dict[str, Any]]:
+    if artifact_ids:
+        selected_ids = {str(artifact_id) for artifact_id in artifact_ids}
+        selected = [artifact for artifact in artefatos if str(artifact.get("id")) in selected_ids]
+        return selected[:MAX_ARTIFACTS]
+
     relevant = [artifact for artifact in artefatos if _is_text_artifact(artifact)]
 
     if not relevant:
         relevant = artefatos
 
     return relevant[:MAX_ARTIFACTS]
+
+
+def _summarize_artifact(artifact: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "id": artifact.get("id"),
+        "nome_arquivo": artifact.get("nome_arquivo"),
+        "tipo": artifact.get("tipo"),
+        "url_documento": artifact.get("url_documento"),
+    }
 
 
 def _is_text_artifact(artifact: dict[str, Any]) -> bool:

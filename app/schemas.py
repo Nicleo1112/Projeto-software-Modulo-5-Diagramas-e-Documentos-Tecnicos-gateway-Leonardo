@@ -116,6 +116,7 @@ class AiDiagramGenerateRequest(BaseModel):
     titulo: str
     codigo_fonte: str
     projeto_id: Optional[str] = None
+    artifact_ids: Optional[List[int]] = None
 
 
 class AiDiagramGenerateResponse(BaseModel):

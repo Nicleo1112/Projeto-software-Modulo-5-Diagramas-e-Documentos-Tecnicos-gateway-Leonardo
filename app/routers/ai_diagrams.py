@@ -5,11 +5,22 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from app.schemas import AiDiagramGenerateRequest, AiDiagramGenerateResponse
 from app.services.ai_diagram_service import gerar_diagrama_com_ia
 from app.services.auth_token_service import exigir_token_bearer
-from app.services.external_database_service import buscar_dados_bancos
+from app.services.external_database_service import buscar_dados_bancos, listar_artefatos_modulo2
 
 
 router = APIRouter(prefix="/api/modulo5/diagramas", tags=["Diagramas com IA"])
 logger = logging.getLogger(__name__)
+
+
+@router.get("/projetos/{projeto_id}/artefatos")
+async def listar_artefatos_projeto(
+    projeto_id: str,
+    usuario: dict = Depends(exigir_token_bearer),
+):
+    return await listar_artefatos_modulo2(
+        projeto_id=projeto_id,
+        token=usuario.get("token"),
+    )
 
 
 @router.post("/gerar-ia", response_model=AiDiagramGenerateResponse)
@@ -20,6 +31,7 @@ async def gerar_diagrama_ia(
     dados_bancos = await buscar_dados_bancos(
         projeto_id=request.projeto_id,
         token=usuario.get("token"),
+        artifact_ids=request.artifact_ids,
     )
 
     try:
