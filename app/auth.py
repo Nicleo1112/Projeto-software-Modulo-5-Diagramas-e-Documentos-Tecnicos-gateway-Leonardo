@@ -1,8 +1,8 @@
 import os
-from typing import Optional
 
 import jwt
-from fastapi import Header, HTTPException, status
+from fastapi import Depends, HTTPException, status
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 
 JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY")
@@ -11,6 +11,7 @@ JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
 # Mantem a API funcionando sem token em ambiente de desenvolvimento.
 # Na Azure, use AUTH_REQUIRED=true quando o front ja estiver enviando token.
 AUTH_REQUIRED = os.getenv("AUTH_REQUIRED", "false").lower() == "true"
+bearer_scheme = HTTPBearer(auto_error=False)
 
 
 def verificar_sessao_usuario(token: str) -> dict:
@@ -58,9 +59,9 @@ def verificar_sessao_usuario(token: str) -> dict:
 
 
 def get_current_user(
-    authorization: Optional[str] = Header(default=None),
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
 ) -> dict:
-    if not AUTH_REQUIRED and not authorization:
+    if not AUTH_REQUIRED and not credentials:
         return {
             "valido": True,
             "user_id": "dev-user",
@@ -69,18 +70,16 @@ def get_current_user(
             "modo": "sem_autenticacao_obrigatoria",
         }
 
-    if not authorization:
+    if not credentials:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Token de autenticacao nao informado.",
         )
 
-    if not authorization.startswith("Bearer "):
+    if credentials.scheme.lower() != "bearer":
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Formato do token invalido. Use Authorization: Bearer TOKEN.",
         )
 
-    token = authorization.replace("Bearer ", "").strip()
-
-    return verificar_sessao_usuario(token)
+    return verificar_sessao_usuario(credentials.credentials.strip())

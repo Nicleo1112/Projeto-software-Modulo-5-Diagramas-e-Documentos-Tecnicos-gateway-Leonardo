@@ -1,4 +1,8 @@
-from fastapi import Header, HTTPException, status
+from fastapi import Depends, HTTPException, status
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+
+
+bearer_scheme = HTTPBearer(auto_error=False)
 
 
 def validar_token_jwt(token: str) -> dict:
@@ -17,18 +21,20 @@ def validar_token_jwt(token: str) -> dict:
     }
 
 
-def exigir_token_bearer(authorization: str | None = Header(default=None)) -> dict:
-    if not authorization:
+def exigir_token_bearer(
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
+) -> dict:
+    if not credentials:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Header Authorization nao informado. Use Authorization: Bearer TOKEN.",
         )
 
-    if not authorization.startswith("Bearer "):
+    if credentials.scheme.lower() != "bearer":
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail='Formato do token invalido. Use "Authorization: Bearer TOKEN".',
         )
 
-    token = authorization.replace("Bearer ", "", 1).strip()
+    token = credentials.credentials.strip()
     return validar_token_jwt(token)
