@@ -6,6 +6,8 @@ from typing import Any
 
 DEFAULT_OPENAI_MODEL = "gpt-4.1-mini"
 DEFAULT_GROQ_MODEL = "llama-3.1-8b-instant"
+DEFAULT_MAX_OUTPUT_TOKENS = 1400
+DEFAULT_PROMPT_CONTEXT_MAX_CHARS = 4500
 SYSTEM_PROMPT = (
     "Voce e um engenheiro de software especialista em arquitetura, UML, "
     "documentacao tecnica e engenharia reversa visual."
@@ -75,7 +77,7 @@ def _generate_with_openai(prompt: str) -> str:
                 "content": prompt,
             },
         ],
-        max_output_tokens=3000,
+        max_output_tokens=_get_int_env("AI_MAX_OUTPUT_TOKENS", DEFAULT_MAX_OUTPUT_TOKENS),
     )
 
     return _extract_response_text(response)
@@ -103,7 +105,7 @@ def _generate_with_groq(prompt: str) -> str:
             },
         ],
         temperature=0.1,
-        max_tokens=3000,
+        max_tokens=_get_int_env("AI_MAX_OUTPUT_TOKENS", DEFAULT_MAX_OUTPUT_TOKENS),
         response_format={"type": "json_object"},
     )
 
@@ -115,284 +117,78 @@ def _diagram_specific_rules(tipo_diagrama: str) -> str:
 
     if "uml" in tipo or "classe" in tipo or "class" in tipo:
         return """
-TIPO ESCOLHIDO: UML DE CLASSES
-
-Gere um diagrama de classes PlantUML.
-
-Use apenas estes elementos quando fizer sentido:
-- class
-- interface
-- enum
-- abstract class
-- relacionamentos UML
-
-Regras:
-- Representar classes reais do dominio do projeto.
-- Incluir atributos e metodos quando estiverem claros no codigo.
-- Nao transformar bibliotecas externas em classes principais do sistema.
-- Nao gerar diagrama de sequencia.
-- Nao usar participant.
-- Nao usar start/stop.
-- Para heranca, usar: Filho --|> Pai
-- Para implementacao de interface, usar: Classe ..|> Interface
-- Para associacao, usar: ClasseA --> ClasseB
-- Para dependencia, usar: ClasseA ..> ClasseB
-
-Exemplo de sintaxe valida:
-@startuml
-class Usuario {
-  - nome
-  - email
-  + login()
-}
-
-class Pedido {
-  - status
-  + finalizar()
-}
-
-Pedido --> Usuario
-@enduml
+Tipo: UML de Classes.
+Use class/interface/enum/abstract class.
+Inclua atributos/metodos claros e relacoes UML.
+Nao use participant, start/stop ou sequencia.
+Relacoes: Filho --|> Pai, Classe ..|> Interface, A --> B, A ..> B.
 """.strip()
 
     if "arquitetura" in tipo or "architecture" in tipo or "sistema" in tipo:
         return """
-TIPO ESCOLHIDO: ARQUITETURA DE SISTEMA
-
-Gere um diagrama de componentes/camadas do sistema.
-
-Use preferencialmente:
-- package
-- component
-- database
-- queue
-- cloud
-- node
-- retangulos/componentes
-
-Regras:
-- Mostrar visao geral do sistema.
-- Mostrar camadas como Frontend, API/Gateway, Controllers, Services, Repositories e Banco.
-- Mostrar integracoes externas se aparecerem no contexto.
-- Nao gerar diagrama de sequencia.
-- Nao usar participant.
-- Nao usar start/stop.
-- Nao mostrar ordem temporal de chamadas.
-- O objetivo e mostrar componentes e dependencias, nao fluxo passo a passo.
-
-Exemplo de sintaxe valida:
-@startuml
-title Arquitetura de Sistema
-
-package "Camada de Apresentacao" {
-  [Frontend Web] as Frontend
-}
-
-package "Backend" {
-  [API Gateway] as Gateway
-  [Controllers] as Controllers
-  [Services] as Services
-  [Repositories] as Repositories
-}
-
-database "PostgreSQL" as DB
-
-Frontend --> Gateway
-Gateway --> Controllers
-Controllers --> Services
-Services --> Repositories
-Repositories --> DB
-@enduml
+Tipo: Arquitetura de Sistema.
+Use package/component/database/queue/cloud/node.
+Mostre camadas como Frontend, Gateway/API, Controllers, Services, Repositories e Banco.
+Mostre dependencias entre componentes, nao ordem temporal.
+Nao use participant, start/stop ou sequencia.
 """.strip()
 
     if "cloud" in tipo or "nuvem" in tipo or "aws" in tipo or "azure" in tipo or "gcp" in tipo:
         return """
-TIPO ESCOLHIDO: INFRAESTRUTURA CLOUD
-
-Gere um diagrama de infraestrutura em nuvem.
-
-Use preferencialmente:
-- cloud
-- node
-- database
-- storage
-- component
-- queue
-
-Regras:
-- Mostrar provedor de nuvem quando possivel: Azure, AWS ou GCP.
-- Se nao houver provedor claro, usar "Cloud Provider".
-- Mostrar frontend, backend, banco, storage, monitoramento e servicos externos quando existirem.
-- Nao gerar diagrama de sequencia.
-- Nao usar participant.
-- Nao usar start/stop.
-- Usar nomes entre aspas quando tiverem espaco.
-- Usar aliases sem espaco.
-
-Exemplo de sintaxe valida:
-@startuml
-title Infraestrutura Cloud
-
-cloud "Azure" {
-  node "App Service Frontend" as Frontend
-  node "App Service Gateway API" as Gateway
-  node "App Service Backend" as Backend
-  database "Azure PostgreSQL" as DB
-  storage "Azure Blob Storage" as Blob
-}
-
-Frontend --> Gateway
-Gateway --> Backend
-Backend --> DB
-Backend --> Blob
-@enduml
+Tipo: Infraestrutura Cloud.
+Use cloud/node/database/storage/component/queue.
+Mostre provedor, frontend, backend, banco, storage e servicos externos quando existirem.
+Use aliases sem espaco. Nao use participant, start/stop ou sequencia.
 """.strip()
 
     if "er" in tipo or "entidade" in tipo or "relacionamento" in tipo or "dados" in tipo or "database" in tipo:
         return """
-TIPO ESCOLHIDO: DIAGRAMA ER
-
-Gere um Diagrama Entidade-Relacionamento em PlantUML.
-
-Use preferencialmente:
-- entity
-- relacionamentos com cardinalidade
-
-Regras:
-- Criar entidades a partir de models, tabelas ou classes de dominio.
-- Incluir campos principais quando estiverem claros.
-- Inferir chaves primarias como id quando fizer sentido.
-- Inferir relacionamentos a partir de atributos como usuario, pedido, produto, itens etc.
-- Nao gerar diagrama de sequencia.
-- Nao usar participant.
-- Nao usar start/stop.
-- Usar cardinalidade quando possivel:
-  Usuario ||--o{ Pedido
-  Pedido ||--o{ PedidoItem
-  Produto ||--o{ PedidoItem
-
-Exemplo de sintaxe valida:
-@startuml
-title Diagrama ER
-
-entity Usuario {
-  * id
-  --
-  nome
-  email
-}
-
-entity Pedido {
-  * id
-  --
-  status
-  valorTotal
-}
-
-entity Produto {
-  * id
-  --
-  nome
-  preco
-}
-
-Usuario ||--o{ Pedido
-Pedido ||--o{ Produto
-@enduml
+Tipo: Diagrama ER.
+Use entity e cardinalidade.
+Crie entidades a partir de models/tabelas/classes de dominio.
+Inclua campos claros e id quando fizer sentido.
+Relacoes: Usuario ||--o{ Pedido, Pedido ||--o{ Item.
+Nao use participant, start/stop ou sequencia.
 """.strip()
 
     if "perfil" in tipo or "usuario" in tipo or "persona" in tipo or "rbac" in tipo:
         return """
-TIPO ESCOLHIDO: PERFIS DE USUARIO
-
-Gere um diagrama de atores e casos de uso.
-
-Use preferencialmente:
-- actor
-- usecase
-- rectangle
-
-Regras:
-- Representar perfis de usuario como actors.
-- Representar funcionalidades como usecases.
-- Nao gerar diagrama de classes.
-- Nao gerar diagrama de sequencia.
-- Nao usar participant.
-- Nao usar start/stop.
-- Usar aliases para atores ou casos de uso com espaco.
-
-Exemplo de sintaxe valida:
-@startuml
-title Perfis de Usuario
-
-actor "Cliente" as Cliente
-actor "Administrador" as Admin
-actor "Gerente de Vendas" as Gerente
-
-rectangle "Sistema E-commerce" {
-  usecase "Realizar Pedido" as UC1
-  usecase "Gerenciar Produtos" as UC2
-  usecase "Consultar Relatorios" as UC3
-}
-
-Cliente --> UC1
-Admin --> UC2
-Gerente --> UC3
-@enduml
+Tipo: Perfis de Usuario.
+Use actor/usecase/rectangle.
+Perfis viram actors; funcionalidades viram usecases.
+Nao use class, participant, start/stop ou sequencia.
+Use aliases para nomes com espaco.
 """.strip()
 
     if "fluxo" in tipo or "processo" in tipo or "workflow" in tipo or "bpm" in tipo:
         return """
-TIPO ESCOLHIDO: FLUXO DE PROCESSO
-
-Gere um diagrama de atividades/processo.
-
-Use preferencialmente:
-- start
-- :acao;
-- if/else/endif
-- stop
-
-Regras:
-- Mostrar o fluxo do processo de negocio ou workflow.
-- Nao gerar diagrama de sequencia.
-- Nao usar participant.
-- Nao criar lifelines.
-- Nao usar setas entre participantes.
-- Cada acao deve terminar com ponto e virgula.
-- Usar decisoes com if/then/else/endif quando fizer sentido.
-- O objetivo e mostrar etapas do processo, nao arquitetura de componentes.
-
-Exemplo de sintaxe valida:
-@startuml
-title Fluxo de Processo
-
-start
-:Cliente escolhe produtos;
-:Sistema cria pedido;
-:Processar pagamento;
-
-if (Pagamento aprovado?) then (sim)
-  :Atualizar status do pedido;
-  :Enviar confirmacao;
-else (nao)
-  :Informar falha no pagamento;
-endif
-
-stop
-@enduml
+Tipo: Fluxo de Processo.
+Use diagrama de atividades com start, :acao;, if/then/else/endif e stop.
+Cada acao termina com ponto e virgula.
+Nao use participant, lifelines, class ou sequencia.
 """.strip()
 
     return """
-TIPO ESCOLHIDO: DIAGRAMA TECNICO GENERICO
-
-Gere um PlantUML simples, valido e coerente com o tipo solicitado.
-
-Regras:
-- Escolher a sintaxe PlantUML mais adequada ao tipo pedido.
-- Nao misturar tipos de diagrama.
-- Priorizar clareza e documentacao tecnica.
+Tipo: Diagrama tecnico generico.
+Escolha a sintaxe PlantUML mais adequada, sem misturar tipos.
+Priorize clareza e documentacao tecnica.
 """.strip()
+
+
+def _get_int_env(name: str, default: int) -> int:
+    try:
+        value = int(os.getenv(name, str(default)))
+    except ValueError:
+        return default
+
+    return value if value > 0 else default
+
+
+def _truncate_text(value: str, max_chars: int) -> str:
+    if len(value) <= max_chars:
+        return value
+
+    return value[:max_chars] + "\n... contexto truncado para respeitar limite de tokens ..."
 
 
 def _build_prompt(
@@ -401,13 +197,14 @@ def _build_prompt(
     codigo_fonte: str,
     dados_bancos: dict,
 ) -> str:
-    bancos_json = json.dumps(dados_bancos, ensure_ascii=False, indent=2, default=str)
+    bancos_json = _truncate_text(
+        json.dumps(dados_bancos, ensure_ascii=False, indent=2, default=str),
+        _get_int_env("AI_PROMPT_CONTEXT_MAX_CHARS", DEFAULT_PROMPT_CONTEXT_MAX_CHARS),
+    )
     regras_tipo = _diagram_specific_rules(tipo_diagrama)
 
     return f"""
-Voce e um engenheiro de software especialista em engenharia reversa visual, arquitetura de software, UML, PlantUML e documentacao tecnica.
-
-Sua tarefa e gerar UM UNICO diagrama PlantUML valido, de acordo com o tipo solicitado.
+Gere UM UNICO diagrama PlantUML valido para documentacao tecnica.
 
 Tipo do diagrama solicitado: {tipo_diagrama}
 Titulo solicitado: {titulo}
@@ -422,32 +219,12 @@ REGRAS ESPECIFICAS DO TIPO DE DIAGRAMA:
 {regras_tipo}
 
 REGRAS GERAIS OBRIGATORIAS:
-- Responder somente JSON valido.
-- Nao usar markdown.
-- Nao explicar fora do JSON.
-- O campo plantuml deve conter PlantUML completo.
-- O campo plantuml deve comecar exatamente com @startuml.
-- O campo plantuml deve terminar exatamente com @enduml.
-- Nao inventar informacoes absurdas.
-- Priorizar elementos encontrados no codigo-fonte e nos artefatos.
-- Se faltar informacao, gerar uma versao simples e coerente em vez de inventar detalhes complexos.
-- Nao misturar tipos de diagrama.
-- Se o tipo solicitado for arquitetura, nao gerar sequencia.
-- Se o tipo solicitado for fluxo, gerar atividade/processo, nao sequencia.
-- Se o tipo solicitado for UML de Classes, gerar classes e relacionamentos, nao atores.
-- Se o tipo solicitado for ER, gerar entidades e relacionamentos, nao classes UML comuns.
-- Se o tipo solicitado for perfis de usuario, gerar atores e casos de uso.
-- Qualquer nome com espaco, acento, hifen ou caractere especial deve ser declarado com aspas e alias.
-- Use aliases sem espaco nas conexoes.
-- Exemplo correto:
-  component "Frontend Web" as FrontendWeb
-  component "API Gateway" as APIGateway
-  database "Banco PostgreSQL" as BancoPostgreSQL
-  FrontendWeb --> APIGateway
-  APIGateway --> BancoPostgreSQL
-- Nunca use nomes com espaco diretamente em setas.
-- Evite caracteres especiais desnecessarios dentro dos aliases.
-- O JSON final deve ser parseavel com json.loads.
+- Responda somente JSON valido, sem markdown e sem texto fora do JSON.
+- plantuml deve comecar com @startuml e terminar com @enduml.
+- Nao misture tipos de diagrama.
+- Priorize codigo e artefatos; se faltar dado, gere versao simples.
+- Nomes com espaco/acento/hifen devem usar aspas e alias sem espaco.
+- Exemplo de alias: component "API Gateway" as APIGateway; Frontend --> APIGateway.
 
 FORMATO OBRIGATORIO DA RESPOSTA:
 {{
@@ -456,15 +233,6 @@ FORMATO OBRIGATORIO DA RESPOSTA:
   "plantuml": "string",
   "technical_explanation": "string",
   "elements_count": 1
-}}
-
-EXEMPLO DE RESPOSTA VALIDA:
-{{
-  "title": "Diagrama de Exemplo",
-  "diagram_type": "{tipo_diagrama}",
-  "plantuml": "@startuml\\ntitle Diagrama de Exemplo\\n[Frontend] --> [Gateway]\\n@enduml",
-  "technical_explanation": "Diagrama gerado a partir do contexto informado.",
-  "elements_count": 2
 }}
 """.strip()
 
