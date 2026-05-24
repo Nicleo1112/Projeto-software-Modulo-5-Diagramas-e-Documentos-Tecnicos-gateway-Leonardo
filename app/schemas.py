@@ -117,6 +117,7 @@ class AiDiagramGenerateRequest(BaseModel):
     codigo_fonte: str
     projeto_id: Optional[str] = None
     artifact_ids: Optional[List[int]] = None
+    save_to_upload_module: bool = False
 
 
 class AiDiagramGenerateResponse(BaseModel):
@@ -125,3 +126,5 @@ class AiDiagramGenerateResponse(BaseModel):
     plantuml: str
     technical_explanation: str
     elements_count: int
+    upload_status: Optional[str] = None
+    upload_message: Optional[str] = None

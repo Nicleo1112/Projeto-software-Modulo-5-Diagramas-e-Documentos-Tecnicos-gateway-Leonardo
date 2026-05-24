@@ -5,7 +5,11 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from app.schemas import AiDiagramGenerateRequest, AiDiagramGenerateResponse
 from app.services.ai_diagram_service import gerar_diagrama_com_ia
 from app.services.auth_token_service import exigir_token_bearer
-from app.services.external_database_service import buscar_dados_bancos, listar_artefatos_modulo2
+from app.services.external_database_service import (
+    buscar_dados_bancos,
+    listar_artefatos_modulo2,
+    salvar_diagrama_modulo_upload,
+)
 
 
 router = APIRouter(prefix="/api/modulo5/diagramas", tags=["Diagramas com IA"])
@@ -35,12 +39,25 @@ async def gerar_diagrama_ia(
     )
 
     try:
-        return gerar_diagrama_com_ia(
+        resultado = gerar_diagrama_com_ia(
             tipo_diagrama=request.tipo_diagrama,
             titulo=request.titulo,
             codigo_fonte=request.codigo_fonte,
             dados_bancos=dados_bancos,
         )
+
+        if request.save_to_upload_module:
+            upload_result = await salvar_diagrama_modulo_upload(
+                projeto_id=request.projeto_id,
+                token=usuario.get("token"),
+                titulo=resultado.get("title") or request.titulo,
+                plantuml=resultado.get("plantuml", ""),
+                resumo_ia=resultado.get("technical_explanation", ""),
+            )
+            resultado["upload_status"] = upload_result.get("status")
+            resultado["upload_message"] = upload_result.get("message")
+
+        return resultado
     except Exception as exc:
         logger.exception("Falha ao gerar diagrama com IA: %s", exc)
         raise HTTPException(

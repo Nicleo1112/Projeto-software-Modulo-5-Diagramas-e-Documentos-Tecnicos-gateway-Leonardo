@@ -1,4 +1,5 @@
 import os
+import re
 from typing import Any
 
 import httpx
@@ -114,6 +115,68 @@ async def buscar_dados_bancos(
     }
 
 
+async def salvar_diagrama_modulo_upload(
+    projeto_id: str | None,
+    token: str | None,
+    titulo: str,
+    plantuml: str,
+    resumo_ia: str,
+) -> dict[str, Any]:
+    if not projeto_id:
+        return {
+            "status": "skipped",
+            "message": "Projeto nao informado para salvar no Modulo 2.",
+        }
+
+    if not token:
+        return {
+            "status": "skipped",
+            "message": "Token JWT nao informado para salvar no Modulo 2.",
+        }
+
+    if not plantuml:
+        return {
+            "status": "skipped",
+            "message": "PlantUML vazio, nada para enviar ao Modulo 2.",
+        }
+
+    upload_url = f"{MODULE2_UPLOAD_API_URL}/api/upload-diagrama"
+    filename = f"{_slugify(titulo or 'diagrama')}.puml"
+    headers = {"Authorization": f"Bearer {token}"}
+    data = {
+        "projeto_id": str(projeto_id),
+        "resumo_ia": resumo_ia or "Diagrama PlantUML gerado pelo Modulo 5 com IA.",
+    }
+    files = {
+        "documento": (filename, plantuml.encode("utf-8"), "text/plain"),
+    }
+
+    try:
+        async with httpx.AsyncClient(timeout=REQUEST_TIMEOUT_SECONDS, follow_redirects=True) as client:
+            response = await client.post(upload_url, headers=headers, data=data, files=files)
+            response.raise_for_status()
+
+            try:
+                response_payload: Any = response.json()
+            except ValueError:
+                response_payload = response.text
+    except Exception as exc:
+        return {
+            "status": "failed",
+            "message": "Diagrama gerado, mas nao foi possivel salvar no Modulo 2.",
+            "endpoint": upload_url,
+            "error": str(exc),
+        }
+
+    return {
+        "status": "saved",
+        "message": "Diagrama salvo no Modulo 2.",
+        "endpoint": upload_url,
+        "filename": filename,
+        "response": response_payload,
+    }
+
+
 async def _build_artifact_context(client: httpx.AsyncClient, artifact: dict[str, Any]) -> dict[str, Any]:
     document_url = artifact.get("url_documento")
     context = {
@@ -180,6 +243,11 @@ def _truncate_content(content: str) -> str:
         return content
 
     return content[:MAX_ARTIFACT_CHARS] + "\n... conteudo truncado ..."
+
+
+def _slugify(value: str) -> str:
+    slug = re.sub(r"[^a-zA-Z0-9_-]+", "_", value).strip("_").lower()
+    return slug[:80] or "diagrama"
 
 
 def _mock_context(message: str) -> dict[str, Any]:
